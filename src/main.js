@@ -1,4 +1,11 @@
 import './style.css'
+import worshipImage from '../pics/worship/IMG_3545.jpeg'
+import beachOne from '../pics/date/beach/IMG_4779.jpeg'
+import beachTwo from '../pics/date/beach/IMG_4780.jpeg'
+import wonderlandOne from '../pics/date/wonderland/IMG_3330.jpeg'
+import wonderlandTwo from '../pics/date/wonderland/IMG_3341.jpeg'
+import wonderlandThree from '../pics/date/wonderland/IMG_3371.jpeg'
+import wonderlandFour from '../pics/date/wonderland/IMG_3527.jpeg'
 
 const nav = [
   { href: '#/', label: 'Worship' },
@@ -6,8 +13,8 @@ const nav = [
 ]
 
 const archiveCategories = {
-  Beach: ['IMG_4779.jpeg', 'IMG_4780.jpeg'],
-  Wonderland: ['IMG_3330.jpeg', 'IMG_3341.jpeg', 'IMG_3371.jpeg', 'IMG_3527.jpeg'],
+  Beach: [beachOne, beachTwo],
+  Wonderland: [wonderlandOne, wonderlandTwo, wonderlandThree, wonderlandFour],
 }
 
 function shell(content, active) {
@@ -32,7 +39,7 @@ function worshipPage() {
       <span class="compliment compliment-f">always making me blush 💗</span>
       <span class="compliment compliment-g">biggest and sweetest smile</span>
     </div>
-    <img src="/pics/worship/IMG_3545.jpeg" alt="Worship" />
+    <img src="${worshipImage}" alt="Worship" />
     <div class="compliment-cloud compliment-right" aria-label="Compliments">
       <span class="compliment compliment-e">you light up every room 💖</span>
       <span class="compliment compliment-f">so lovely 😍</span>
@@ -46,8 +53,8 @@ function worshipPage() {
 }
 
 function archiveImage(category, index) {
-  const file = archiveCategories[category][index]
-  return `<figure class="archive-photo"><img src="/pics/date/${category.toLowerCase()}/${file}" alt="${category} memory ${index + 1}" /></figure>`
+  const image = archiveCategories[category][index]
+  return `<figure class="archive-photo"><img src="${image}" alt="${category} memory ${index + 1}" /></figure>`
 }
 
 function archivePage() {

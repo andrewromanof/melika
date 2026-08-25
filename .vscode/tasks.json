@@ -251,6 +251,54 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "Check GitHub push status",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status",
+				"--short",
+				"--branch"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check latest commit",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"log",
+				"-1",
+				"--oneline",
+				"--decorate"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect Pages remote",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"remote",
+				"-v"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Build GitHub Pages version",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }
