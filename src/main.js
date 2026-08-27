@@ -114,6 +114,7 @@ function celebrateYes() {
   const questionPageElement = document.querySelector('.question-page')
   const questionImages = document.querySelector('.question-images')
   if (!actions || !response || !questionPageElement || !questionImages || document.querySelector('.confetti')) return
+  document.querySelector('[data-answer="no"]')?.remove()
   actions.hidden = true
   questionImages.hidden = false
   response.className = 'question-response yes-response'
