@@ -6,16 +6,21 @@ import wonderlandOne from '../pics/date/wonderland/IMG_3330.jpeg'
 import wonderlandTwo from '../pics/date/wonderland/IMG_3341.jpeg'
 import wonderlandThree from '../pics/date/wonderland/IMG_3371.jpeg'
 import wonderlandFour from '../pics/date/wonderland/IMG_3527.jpeg'
+import questionOne from '../pics/question/IMG_3556.png'
+import questionTwo from '../pics/question/IMG_3557.png'
 
 const nav = [
   { href: '#/', label: 'Worship' },
   { href: '#/archive', label: 'Date archive' },
+  { href: '#/question', label: '???' },
 ]
 
 const archiveCategories = {
   Beach: [beachOne, beachTwo],
   Wonderland: [wonderlandOne, wonderlandTwo, wonderlandThree, wonderlandFour],
 }
+
+const celebrationStorageKey = `melika-question-answered-${__BUILD_ID__}`
 
 function shell(content, active) {
   return `<div class="site-shell">
@@ -75,13 +80,57 @@ function archivePage() {
 }
 
 function questionPage() {
-  return shell('<section class="empty-page" aria-label="Big question"></section>', '#/question')
+  return shell(`<section class="question-page" aria-labelledby="question-title">
+    <div class="question-heading">
+      <p class="eyebrow">A little question</p>
+      <h1 id="question-title">👉 👈 😳</h1>
+    </div>
+    <div class="question-prompt">
+      <p>Will you, gorgeous Melika from Mashhad, be my boyfriend?</p>
+      <div class="question-actions" role="group" aria-label="Answer the question">
+        <button class="question-button question-button-primary" type="button" data-answer="yes">Yes, handsome <span aria-hidden="true">↗</span></button>
+        <button class="question-button question-button-secondary" type="button" data-answer="no">No :(</button>
+      </div>
+      <p class="question-response" aria-live="polite"></p>
+    </div>
+    <div class="question-images" hidden aria-label="Celebration photos">
+      <img class="question-image question-image-left" src="${questionOne}" alt="Celebration photo" />
+      <img class="question-image question-image-right" src="${questionTwo}" alt="Celebration photo" />
+    </div>
+  </section>`, '#/question')
 }
 
 function render() {
   const route = window.location.hash || '#/'
+  document.querySelectorAll('body > .question-button.evading, body > .confetti').forEach(element => element.remove())
   document.querySelector('#app').innerHTML = route === '#/archive' ? archivePage() : route === '#/question' ? questionPage() : worshipPage()
   wireInteractions()
+  if (route === '#/question' && localStorage.getItem(celebrationStorageKey) === 'yes') celebrateYes()
+}
+
+function celebrateYes() {
+  const actions = document.querySelector('.question-actions')
+  const response = document.querySelector('.question-response')
+  const questionPageElement = document.querySelector('.question-page')
+  const questionImages = document.querySelector('.question-images')
+  if (!actions || !response || !questionPageElement || !questionImages || document.querySelector('.confetti')) return
+  actions.hidden = true
+  questionImages.hidden = false
+  response.className = 'question-response yes-response'
+  response.textContent = '🎉 SHE SAID YES!!! 🎉'
+  questionPageElement.classList.add('celebrating')
+  const confetti = document.createElement('div')
+  confetti.className = 'confetti'
+  for (let index = 0; index < 80; index += 1) {
+    const piece = document.createElement('span')
+    piece.style.setProperty('--x', `${Math.random() * 100}vw`)
+    piece.style.setProperty('--delay', `${Math.random() * 1.8}s`)
+    piece.style.setProperty('--duration', `${2.4 + Math.random() * 2.4}s`)
+    piece.style.setProperty('--drift', `${-80 + Math.random() * 160}px`)
+    piece.style.setProperty('--color', ['#e25477', '#e19a34', '#789bce', '#4b8c76', '#8c65ac'][index % 5])
+    confetti.append(piece)
+  }
+  document.body.append(confetti)
 }
 
 function wireInteractions() {
@@ -105,6 +154,28 @@ function wireInteractions() {
     const nextIndex = (Number(gallery.dataset.index || 0) + 1) % archiveCategories[category].length
     gallery.dataset.index = String(nextIndex)
     gallery.innerHTML = archiveImage(category, nextIndex)
+  })
+  const noButton = document.querySelector('[data-answer="no"]')
+  const moveNoButton = () => {
+    const viewport = window.visualViewport
+    const viewportWidth = Math.floor(viewport?.width || document.documentElement.clientWidth)
+    const viewportHeight = Math.floor(viewport?.height || document.documentElement.clientHeight)
+    const viewportLeft = Math.floor(viewport?.offsetLeft || 0)
+    const viewportTop = Math.floor(viewport?.offsetTop || 0)
+    if (!noButton.classList.contains('evading')) document.body.append(noButton)
+    const buttonWidth = Math.min(noButton.offsetWidth, viewportWidth - 16)
+    const buttonHeight = Math.min(noButton.offsetHeight, viewportHeight - 16)
+    const maxLeft = Math.max(8, viewportWidth - buttonWidth - 8)
+    const maxTop = Math.max(8, viewportHeight - buttonHeight - 8)
+    noButton.classList.add('evading')
+    noButton.style.left = `${viewportLeft + 8 + Math.random() * (maxLeft - 8)}px`
+    noButton.style.top = `${viewportTop + 8 + Math.random() * (maxTop - 8)}px`
+  }
+  noButton?.addEventListener('pointerenter', moveNoButton)
+  noButton?.addEventListener('click', moveNoButton)
+  document.querySelector('[data-answer="yes"]')?.addEventListener('click', () => {
+    localStorage.setItem(celebrationStorageKey, 'yes')
+    celebrateYes()
   })
 }
 
