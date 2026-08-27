@@ -2,6 +2,7 @@ import './style.css'
 import worshipImage from '../pics/worship/IMG_3545.jpeg'
 import beachOne from '../pics/date/beach/IMG_4779.jpeg'
 import beachTwo from '../pics/date/beach/IMG_4780.jpeg'
+import kbbqOne from '../pics/date/kbbq/IMG_5760.jpeg'
 import wonderlandOne from '../pics/date/wonderland/IMG_3330.jpeg'
 import wonderlandTwo from '../pics/date/wonderland/IMG_3341.jpeg'
 import wonderlandThree from '../pics/date/wonderland/IMG_3371.jpeg'
@@ -17,6 +18,7 @@ const nav = [
 
 const archiveCategories = {
   Beach: [beachOne, beachTwo],
+  KBBQ: [kbbqOne],
   Wonderland: [wonderlandOne, wonderlandTwo, wonderlandThree, wonderlandFour],
 }
 
