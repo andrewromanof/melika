@@ -88,7 +88,7 @@ function questionPage() {
       <h1 id="question-title">👉 👈 😳</h1>
     </div>
     <div class="question-prompt">
-      <p>Will you, gorgeous Melika from Mashhad, be my boyfriend?</p>
+      <p>Will you, gorgeous Melika from Mashhad, be my girlfriend?</p>
       <div class="question-actions" role="group" aria-label="Answer the question">
         <button class="question-button question-button-primary" type="button" data-answer="yes">Yes, handsome <span aria-hidden="true">↗</span></button>
         <button class="question-button question-button-secondary" type="button" data-answer="no">No :(</button>
