@@ -15,6 +15,8 @@ const nav = [
   { href: '#/', label: 'Worship' },
   { href: '#/archive', label: 'Date archive' },
   { href: '#/question', label: '???' },
+  { href: '#/confessions', label: 'Confessions' },
+  { href: '#/wheel', label: 'The Wheel' },
 ]
 
 const archiveStorageKey = 'melika-archive-v1'
@@ -285,17 +287,332 @@ function questionPage() {
     </div>
     <div class="question-prompt">
       <p>Will you, gorgeous Melika from Mashhad, be my girlfriend?</p>
-      <div class="question-actions" role="group" aria-label="Answer the question">
-        <button class="question-button question-button-primary" type="button" data-answer="yes">Yes, handsome <span aria-hidden="true">↗</span></button>
-        <button class="question-button question-button-secondary" type="button" data-answer="no">No :(</button>
-      </div>
-      <p class="question-response" aria-live="polite"></p>
+      <p class="question-response yes-response" aria-live="polite">🎉 SHE SAID YES!!! 🎉</p>
     </div>
-    <div class="question-images" hidden aria-label="Celebration photos">
+    <div class="question-images" aria-label="Celebration photos">
       <img class="question-image question-image-left" src="${questionOne}" alt="Celebration photo" />
       <img class="question-image question-image-right" src="${questionTwo}" alt="Celebration photo" />
     </div>
   </section>`, '#/question')
+}
+
+function confessionsPage() {
+  return shell(`<section class="page-panel confessions-page" aria-label="Confessions">
+    <div class="confession-shell">
+      <div class="section-toolbar confession-toolbar">
+        <button class="primary-button compact-button" id="create-confession-button" type="button">Create post</button>
+      </div>
+      <div class="confession-list" id="confession-list" aria-live="polite"></div>
+    </div>
+    <div class="modal-backdrop hidden" id="confession-modal" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confession-modal-title">
+        <div class="modal-header">
+          <h2 id="confession-modal-title">New confession</h2>
+          <button class="close-button" id="close-confession-modal" type="button" aria-label="Close">×</button>
+        </div>
+        <form id="confession-form" class="modal-form">
+          <div class="editor-tools" role="toolbar" aria-label="Text formatting">
+            <button type="button" data-editor-command="bold" aria-label="Bold"><strong>B</strong></button>
+            <button type="button" data-editor-command="italic" aria-label="Italic"><em>I</em></button>
+            <button type="button" data-editor-command="underline" aria-label="Underline"><u>U</u></button>
+            <button type="button" data-editor-command="strikeThrough" aria-label="Strikethrough"><s>S</s></button>
+            <button type="button" data-editor-effect="highlight" aria-label="Highlight">A</button>
+            <span class="palette-divider" aria-hidden="true"></span>
+            ${[
+              '#242a25', '#5b645d', '#8a9087', '#bc6749', '#d54d76', '#e25477',
+              '#8c65ac', '#6b4f92', '#4a75a0', '#789bce', '#2e6f95', '#4b8c76',
+              '#425847', '#6f8f55', '#a7b2a0', '#e19a34', '#d28a24', '#c36d2d',
+              '#f1d7b2', '#d8c7b4', '#d5b8bb', '#ecc7d0', '#b0c4e2', '#c8d5d3',
+              '#c4d2a5', '#d0d6c8', '#f4c2c2', '#f6df8b', '#b7d7c2', '#d9c2f0',
+            ].map(color => `<button type="button" class="color-swatch" style="--swatch-color:${color}" data-editor-color="${color}" aria-label="${color} text"></button>`).join('')}
+          </div>
+          <div class="editor-field">
+            <span>Title</span>
+            <div class="rich-editor rich-editor-title" id="confession-title-editor" contenteditable="true" role="textbox" aria-label="Confession title"></div>
+            <input type="hidden" name="title" id="confession-title-value" />
+          </div>
+          <div class="editor-field">
+            <span>Author</span>
+            <div class="rich-editor rich-editor-author" id="confession-author-editor" contenteditable="true" role="textbox" aria-label="Confession author"></div>
+            <input type="hidden" name="author" id="confession-author-value" />
+          </div>
+          <div class="editor-field">
+            <span>Body</span>
+            <div class="rich-editor" id="confession-body-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Confession body"></div>
+            <input type="hidden" name="body" id="confession-body-value" />
+          </div>
+          <p class="form-status" id="confession-form-status" role="status" aria-live="polite"></p>
+          <button class="primary-button" type="submit">Post confession</button>
+        </form>
+      </div>
+    </div>
+  </section>`, '#/confessions')
+}
+
+async function loadConfessions() {
+  try {
+    const { data, error } = await supabase
+      .from('confessions')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.warn('Could not load confessions', error)
+    return []
+  }
+}
+
+function renderConfessions(posts) {
+  const list = document.querySelector('#confession-list')
+  if (!list) return
+
+  if (!posts.length) {
+    list.innerHTML = '<p class="empty-state">No confessions yet. Be the first to write one.</p>'
+    return
+  }
+
+  list.innerHTML = posts.map(post => {
+    const date = post.created_at ? new Date(post.created_at).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }) : 'Unknown date'
+
+    const title = post.title ? `<div class="confession-title">${sanitizeConfessionBody(post.title)}</div>` : ''
+    const author = post.author ? `By ${sanitizeConfessionBody(post.author)} on ${date}` : `On ${date}`
+
+    return `
+      <article class="confession-item">
+        ${title}
+        <div class="confession-meta">
+          <span class="confession-author">${author}</span>
+        </div>
+        <p>${sanitizeConfessionBody((post.body || '').replace(/\n/g, '<br>'))}</p>
+      </article>
+    `
+  }).join('')
+}
+
+function sanitizeConfessionBody(value) {
+  const template = document.createElement('template')
+  template.innerHTML = value
+  const allowedTags = new Set(['B', 'BR', 'EM', 'FONT', 'I', 'S', 'SPAN', 'STRIKE', 'STRONG', 'U'])
+  const allowedColors = new Set([
+    '#242a25', '#5b645d', '#8a9087', '#bc6749', '#d54d76', '#e25477', '#8c65ac', '#6b4f92',
+    '#4a75a0', '#789bce', '#2e6f95', '#4b8c76', '#425847', '#6f8f55', '#a7b2a0', '#e19a34',
+    '#d28a24', '#c36d2d', '#f1d7b2', '#d8c7b4', '#d5b8bb', '#ecc7d0', '#b0c4e2', '#c8d5d3',
+    '#c4d2a5', '#d0d6c8', '#f4c2c2', '#f6df8b', '#b7d7c2', '#d9c2f0',
+  ])
+  const normalizedColors = new Set(allowedColors)
+  allowedColors.forEach(color => {
+    const probe = document.createElement('span')
+    probe.style.color = color
+    normalizedColors.add(probe.style.color)
+  })
+  const allowedHighlight = new Set(['#f1d7b2', 'rgb(241, 215, 178)'])
+
+  function cleanNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue)
+    if (node.nodeType !== Node.ELEMENT_NODE) return document.createDocumentFragment()
+
+    if (!allowedTags.has(node.tagName)) {
+      const fragment = document.createDocumentFragment()
+      Array.from(node.childNodes).forEach(child => fragment.append(cleanNode(child)))
+      return fragment
+    }
+
+    const clean = document.createElement(node.tagName.toLowerCase())
+    const textColor = node.getAttribute('color')?.toLowerCase()
+    if (node.tagName === 'FONT' && normalizedColors.has(textColor)) {
+      clean.setAttribute('color', textColor)
+    }
+    if (node.tagName === 'SPAN' && normalizedColors.has(node.style.color.toLowerCase())) {
+      clean.style.color = node.style.color
+    }
+    if (allowedHighlight.has(node.style.backgroundColor.toLowerCase())) clean.style.backgroundColor = '#f1d7b2'
+    Array.from(node.childNodes).forEach(child => clean.append(cleanNode(child)))
+    return clean
+  }
+
+  const output = document.createDocumentFragment()
+  Array.from(template.content.childNodes).forEach(node => output.append(cleanNode(node)))
+  const container = document.createElement('div')
+  container.append(output)
+  return container.innerHTML
+}
+
+async function refreshConfessions() {
+  const posts = await loadConfessions()
+  renderConfessions(posts)
+}
+
+function wheelPage() {
+  return shell(`<section class="page-panel wheel-page" aria-label="The Wheel">
+    <div class="wheel-layout">
+      <aside class="token-counter" aria-label="Good Girl tokens">
+        <span class="token-counter-label">Good Girl tokens</span>
+        <strong id="good-girl-tokens">0</strong>
+      </aside>
+      <div class="wheel-content">
+        <p id="wheel-result" class="wheel-result" aria-live="polite"></p>
+        <div class="wheel-stage">
+          <div class="wheel-pointer" aria-hidden="true"></div>
+          <div class="fortune-wheel" id="wheel-visual" aria-label="Fortune wheel"></div>
+        </div>
+      </div>
+    </div>
+  </section>`, '#/wheel')
+}
+
+async function loadLatestWheel() {
+  try {
+    const { data, error } = await supabase
+      .from('fortune_wheels')
+      .select('id, options, last_winner, question, good_girl_tokens')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error && error.code !== 'PGRST116') throw error
+    return data || null
+  } catch (error) {
+    console.warn('Could not load wheel', error)
+    return null
+  }
+}
+
+function buildWheelGradient(options) {
+  if (!options.length) return 'conic-gradient(#d8c7b4 0deg 360deg)'
+  const segment = 360 / options.length
+  const palette = ['#d8c7b4', '#f1d7b2', '#c8d5d3', '#d5b8bb', '#c4d2a5', '#b0c4e2', '#e5c5a4', '#d0d6c8', '#ecc7d0', '#cdd7b8']
+
+  const stops = options.map((_, index) => {
+    const start = index * segment
+    const end = (index + 1) * segment
+    return `${palette[index % palette.length]} ${start}deg ${end}deg`
+  })
+
+  return `conic-gradient(${stops.join(', ')})`
+}
+
+function renderWheelOptions(options) {
+  const wheel = document.querySelector('#wheel-visual')
+  const result = document.querySelector('#wheel-result')
+  if (!wheel) return
+
+  if (!options.length) {
+    wheel.innerHTML = ''
+    wheel.style.background = buildWheelGradient([])
+    if (result) result.textContent = ''
+    return
+  }
+
+  const segmentSize = 360 / options.length
+  wheel.style.background = buildWheelGradient(options)
+  wheel.innerHTML = options.map((option, index) => {
+    const angle = (index + 0.5) * segmentSize
+    return `<span class="wheel-label" style="--angle:${angle}deg;">${option}</span>`
+  }).join('')
+  const centerButton = document.createElement('button')
+  centerButton.className = 'wheel-center'
+  centerButton.id = 'spin-wheel-button'
+  centerButton.type = 'button'
+  centerButton.textContent = 'Spin'
+  centerButton.setAttribute('aria-label', 'Spin wheel')
+  centerButton.addEventListener('click', spinCurrentWheel)
+  wheel.appendChild(centerButton)
+
+  if (result) result.textContent = ''
+}
+
+let currentWheelRotation = 0
+let currentWheelOptions = []
+let currentWheelId = null
+let currentGoodGirlTokens = 0
+
+function renderGoodGirlTokens() {
+  const tokens = document.querySelector('#good-girl-tokens')
+  if (tokens) tokens.textContent = String(currentGoodGirlTokens)
+}
+
+async function refreshWheel() {
+  const wheel = await loadLatestWheel()
+  currentWheelId = wheel?.id || null
+  currentWheelOptions = wheel?.options || []
+  currentGoodGirlTokens = Math.max(0, Number(wheel?.good_girl_tokens ?? 0))
+  currentWheelRotation = 0
+  renderWheelOptions(currentWheelOptions)
+  renderGoodGirlTokens()
+  const result = document.querySelector('#wheel-result')
+  if (result && wheel?.last_winner) result.textContent = `Winner: ${wheel.last_winner}`
+}
+
+async function spinCurrentWheel() {
+  const wheel = document.querySelector('#wheel-visual')
+  const result = document.querySelector('#wheel-result')
+  const spinButton = document.querySelector('#spin-wheel-button')
+
+  if (!wheel || !currentWheelOptions.length) {
+    if (result) result.textContent = 'Create a wheel first.'
+    return
+  }
+
+  if (currentGoodGirlTokens <= 0) {
+    if (result) result.textContent = 'No Good Girl tokens left.'
+    return
+  }
+
+  if (spinButton) spinButton.disabled = true
+  let remainingTokens = currentGoodGirlTokens - 1
+
+  if (currentWheelId) {
+    const { data, error } = await supabase.rpc('consume_good_girl_token', { wheel_id: currentWheelId })
+    const tokenValue = Array.isArray(data) ? data[0] : data
+    if (error || tokenValue == null) {
+      if (spinButton) spinButton.disabled = false
+      if (result) result.textContent = error ? 'Could not use a token. Please try again.' : 'No Good Girl tokens left.'
+      if (error) console.warn('Could not use Good Girl token', error)
+      if (!error) {
+        currentGoodGirlTokens = 0
+        renderGoodGirlTokens()
+      }
+      return
+    }
+    remainingTokens = Number(tokenValue)
+  }
+
+  currentGoodGirlTokens = Math.max(0, remainingTokens)
+  renderGoodGirlTokens()
+
+  const segmentSize = 360 / currentWheelOptions.length
+  const winnerIndex = Math.floor(Math.random() * currentWheelOptions.length)
+  const winnerAngle = (winnerIndex + 0.5) * segmentSize
+  const spins = 7 + Math.random() * 4
+  const currentAngle = ((currentWheelRotation % 360) + 360) % 360
+  const alignment = (360 - ((currentAngle + winnerAngle) % 360)) % 360
+  const targetRotation = currentWheelRotation + spins * 360 + alignment
+  currentWheelRotation = targetRotation
+  const winner = currentWheelOptions[winnerIndex]
+
+  wheel.style.transition = 'transform 5.2s cubic-bezier(0.12, 0.72, 0.2, 1)'
+  wheel.style.transform = `rotate(${targetRotation}deg)`
+
+  window.setTimeout(() => {
+    if (result) result.textContent = `Winner: ${winner}`
+    if (spinButton) spinButton.disabled = false
+  }, 5300)
+
+  if (currentWheelId) {
+    supabase
+      .from('fortune_wheels')
+      .update({ last_winner: winner })
+      .eq('id', currentWheelId)
+      .then(({ error }) => {
+        if (error) console.warn('Could not save wheel winner', error)
+      })
+  }
 }
 
 async function render() {
@@ -304,6 +621,10 @@ async function render() {
 
   if (route === '#/archive') {
     document.querySelector('#app').innerHTML = await archivePage()
+  } else if (route === '#/confessions') {
+    document.querySelector('#app').innerHTML = confessionsPage()
+  } else if (route === '#/wheel') {
+    document.querySelector('#app').innerHTML = wheelPage()
   } else if (route === '#/question') {
     document.querySelector('#app').innerHTML = questionPage()
   } else {
@@ -311,7 +632,7 @@ async function render() {
   }
 
   wireInteractions()
-  if (route === '#/question' && localStorage.getItem(celebrationStorageKey) === 'yes') celebrateYes()
+  if (route === '#/question') celebrateYes()
 }
 
 function celebrateYes() {
@@ -319,13 +640,18 @@ function celebrateYes() {
   const response = document.querySelector('.question-response')
   const questionPageElement = document.querySelector('.question-page')
   const questionImages = document.querySelector('.question-images')
-  if (!actions || !response || !questionPageElement || !questionImages || document.querySelector('.confetti')) return
-  document.querySelector('[data-answer="no"]')?.remove()
-  actions.hidden = true
+  if (!response || !questionPageElement || !questionImages || document.querySelector('.confetti')) return
+
+  if (actions) {
+    document.querySelector('[data-answer="no"]')?.remove()
+    actions.hidden = true
+  }
+
   questionImages.hidden = false
   response.className = 'question-response yes-response'
   response.textContent = '🎉 SHE SAID YES!!! 🎉'
   questionPageElement.classList.add('celebrating')
+
   const confetti = document.createElement('div')
   confetti.className = 'confetti'
   for (let index = 0; index < 80; index += 1) {
@@ -340,7 +666,7 @@ function celebrateYes() {
   document.body.append(confetti)
 }
 
-function wireInteractions() {
+async function wireInteractions() {
   attachTabHandlers()
 
   document.querySelector('#archive-create-tab')?.addEventListener('submit', async event => {
@@ -424,28 +750,92 @@ function wireInteractions() {
     }
   })
 
-  const noButton = document.querySelector('[data-answer="no"]')
-  const moveNoButton = () => {
-    const viewport = window.visualViewport
-    const viewportWidth = Math.floor(viewport?.width || document.documentElement.clientWidth)
-    const viewportHeight = Math.floor(viewport?.height || document.documentElement.clientHeight)
-    const viewportLeft = Math.floor(viewport?.offsetLeft || 0)
-    const viewportTop = Math.floor(viewport?.offsetTop || 0)
-    if (!noButton.classList.contains('evading')) document.body.append(noButton)
-    const buttonWidth = Math.min(noButton.offsetWidth, viewportWidth - 16)
-    const buttonHeight = Math.min(noButton.offsetHeight, viewportHeight - 16)
-    const maxLeft = Math.max(8, viewportWidth - buttonWidth - 8)
-    const maxTop = Math.max(8, viewportHeight - buttonHeight - 8)
-    noButton.classList.add('evading')
-    noButton.style.left = `${viewportLeft + 8 + Math.random() * (maxLeft - 8)}px`
-    noButton.style.top = `${viewportTop + 8 + Math.random() * (maxTop - 8)}px`
-  }
-  noButton?.addEventListener('pointerenter', moveNoButton)
-  noButton?.addEventListener('click', moveNoButton)
-  document.querySelector('[data-answer="yes"]')?.addEventListener('click', () => {
-    localStorage.setItem(celebrationStorageKey, 'yes')
-    celebrateYes()
+  document.querySelector('#create-confession-button')?.addEventListener('click', () => {
+    document.querySelector('#confession-modal')?.classList.remove('hidden')
+    document.querySelector('#confession-modal')?.setAttribute('aria-hidden', 'false')
   })
+
+  document.querySelector('#close-confession-modal')?.addEventListener('click', () => {
+    document.querySelector('#confession-modal')?.classList.add('hidden')
+    document.querySelector('#confession-modal')?.setAttribute('aria-hidden', 'true')
+  })
+
+  document.querySelectorAll('[data-editor-command]').forEach(button => {
+    button.addEventListener('mousedown', event => {
+      event.preventDefault()
+      document.execCommand(button.dataset.editorCommand)
+    })
+  })
+
+  document.querySelectorAll('[data-editor-color]').forEach(button => {
+    button.addEventListener('mousedown', event => {
+      event.preventDefault()
+      document.execCommand('foreColor', false, button.dataset.editorColor)
+    })
+  })
+
+  document.querySelectorAll('[data-editor-effect]').forEach(button => {
+    button.addEventListener('mousedown', event => {
+      event.preventDefault()
+      if (button.dataset.editorEffect === 'highlight') {
+        document.execCommand('backColor', false, '#f1d7b2')
+      }
+    })
+  })
+
+  document.querySelector('#confession-form')?.addEventListener('submit', async event => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const status = document.querySelector('#confession-form-status')
+    const editors = [
+      ['#confession-title-editor', '#confession-title-value'],
+      ['#confession-author-editor', '#confession-author-value'],
+      ['#confession-body-editor', '#confession-body-value'],
+    ]
+    editors.forEach(([editorSelector, valueSelector]) => {
+      const editor = document.querySelector(editorSelector)
+      const value = document.querySelector(valueSelector)
+      if (editor && value) value.value = editor.innerHTML
+    })
+    const formData = new FormData(form)
+    const payload = {
+      title: String(formData.get('title') || '').trim(),
+      author: String(formData.get('author') || '').trim(),
+      body: String(formData.get('body') || '').trim(),
+    }
+
+    if (!payload.title || !payload.author || !payload.body) {
+      if (status) status.textContent = 'Please complete every field.'
+      return
+    }
+
+    try {
+      if (status) status.textContent = 'Posting...'
+      const { error } = await supabase.from('confessions').insert(payload)
+      if (error) throw error
+
+      form.reset()
+      editors.forEach(([editorSelector, valueSelector]) => {
+        const editor = document.querySelector(editorSelector)
+        const value = document.querySelector(valueSelector)
+        if (editor) editor.innerHTML = ''
+        if (value) value.value = ''
+      })
+      document.querySelector('#confession-modal')?.classList.add('hidden')
+      await refreshConfessions()
+    } catch (error) {
+      console.error('Could not create confession', error)
+      if (status) status.textContent = `Could not post: ${error.message || 'Please try again.'}`
+    }
+  })
+
+  if (window.location.hash === '#/confessions') {
+    await refreshConfessions()
+  }
+
+  if (window.location.hash === '#/wheel') {
+    await refreshWheel()
+  }
 }
 
 function attachTabHandlers() {
