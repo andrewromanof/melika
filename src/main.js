@@ -502,6 +502,13 @@ function renderWheelOptions(options) {
   const result = document.querySelector('#wheel-result')
   if (!wheel) return
 
+  activeWheelSpinCleanup?.()
+  currentWheelRotation = 0
+  wheel.style.transition = 'none'
+  wheel.style.transform = 'rotate(0deg)'
+  const spinButton = document.querySelector('#spin-wheel-button')
+  if (spinButton) spinButton.disabled = false
+
   if (!options.length) {
     wheel.innerHTML = ''
     wheel.style.background = buildWheelGradient([])
@@ -531,6 +538,13 @@ let currentWheelRotation = 0
 let currentWheelOptions = []
 let currentWheelId = null
 let currentGoodGirlTokens = 0
+let activeWheelSpinCleanup = null
+
+function getWheelIndexAtPointer(wheel, optionCount) {
+  const matrix = new DOMMatrixReadOnly(getComputedStyle(wheel).transform)
+  const pointerAngle = (Math.atan2(matrix.c, matrix.a) * 180 / Math.PI + 360) % 360
+  return Math.floor(pointerAngle / (360 / optionCount)) % optionCount
+}
 
 function renderGoodGirlTokens() {
   const tokens = document.querySelector('#good-girl-tokens')
@@ -554,7 +568,7 @@ async function spinCurrentWheel() {
   const result = document.querySelector('#wheel-result')
   const spinButton = document.querySelector('#spin-wheel-button')
 
-  if (!wheel || !currentWheelOptions.length) {
+  if (!wheel || !currentWheelOptions.length || spinButton?.disabled) {
     if (result) result.textContent = 'Create a wheel first.'
     return
   }
@@ -590,29 +604,37 @@ async function spinCurrentWheel() {
   const winnerIndex = Math.floor(Math.random() * currentWheelOptions.length)
   const winnerAngle = (winnerIndex + 0.5) * segmentSize
   const spins = 7 + Math.random() * 4
-  const currentAngle = ((currentWheelRotation % 360) + 360) % 360
+  const matrix = new DOMMatrixReadOnly(getComputedStyle(wheel).transform)
+  const currentAngle = (Math.atan2(matrix.b, matrix.a) * 180 / Math.PI + 360) % 360
+  const rotationBase = Math.ceil((currentWheelRotation - currentAngle) / 360) * 360 + currentAngle
   const alignment = (360 - ((currentAngle + winnerAngle) % 360)) % 360
-  const targetRotation = currentWheelRotation + spins * 360 + alignment
+  const targetRotation = rotationBase + spins * 360 + alignment
   currentWheelRotation = targetRotation
-  const winner = currentWheelOptions[winnerIndex]
 
+  const handleSpinEnd = event => {
+    if (event.propertyName !== 'transform') return
+    const landedIndex = getWheelIndexAtPointer(wheel, currentWheelOptions.length)
+    const winner = currentWheelOptions[landedIndex]
+    activeWheelSpinCleanup?.()
+    if (result) result.textContent = `Winner: ${winner}`
+    if (currentWheelId) {
+      supabase
+        .from('fortune_wheels')
+        .update({ last_winner: winner })
+        .eq('id', currentWheelId)
+        .then(({ error }) => {
+          if (error) console.warn('Could not save wheel winner', error)
+        })
+    }
+  }
+  activeWheelSpinCleanup = () => {
+    wheel.removeEventListener('transitionend', handleSpinEnd)
+    if (spinButton) spinButton.disabled = false
+    activeWheelSpinCleanup = null
+  }
+  wheel.addEventListener('transitionend', handleSpinEnd)
   wheel.style.transition = 'transform 5.2s cubic-bezier(0.12, 0.72, 0.2, 1)'
   wheel.style.transform = `rotate(${targetRotation}deg)`
-
-  window.setTimeout(() => {
-    if (result) result.textContent = `Winner: ${winner}`
-    if (spinButton) spinButton.disabled = false
-  }, 5300)
-
-  if (currentWheelId) {
-    supabase
-      .from('fortune_wheels')
-      .update({ last_winner: winner })
-      .eq('id', currentWheelId)
-      .then(({ error }) => {
-        if (error) console.warn('Could not save wheel winner', error)
-      })
-  }
 }
 
 async function render() {
