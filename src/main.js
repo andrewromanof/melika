@@ -1,4 +1,5 @@
 import './style.css'
+import { dressUpGameMarkup, initDressUpGame } from './dress-up.js'
 import { createClient } from '@supabase/supabase-js'
 import worshipImage from '../pics/worship/IMG_3545.jpeg'
 import beachOne from '../pics/date/beach/IMG_4779.jpeg'
@@ -16,6 +17,7 @@ const nav = [
   { href: '#/archive', label: 'Date archive' },
   { href: '#/question', label: '???' },
   { href: '#/confessions', label: 'Confessions' },
+  { href: '#/dress-up', label: 'Dress your Boyfriend' },
   { href: '#/wheel', label: 'The Wheel' },
 ]
 
@@ -241,11 +243,11 @@ function archiveImage(tab, index) {
   const mediaType = getMediaType(image.src)
   const label = image.alt || `${tab.name} memory ${index + 1}`
   
-  if (mediaType === 'video') {
+    if (mediaType === 'video') {
     return `<figure class="archive-photo archive-video"><video controls><source src="${image.src}" />${label}</video></figure>`
   }
   
-  return `<figure class="archive-photo"><img src="${image.src}" alt="${label}" /></figure>`
+    return `<figure class="archive-photo"><img src="${image.src}" alt="${label}" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Open full-screen photo: ${label}" /></figure>`
 }
 
 function getArchiveViewMode() {
@@ -293,6 +295,13 @@ async function archivePage() {
       </div>
       <p class="archive-upload-status" id="archive-upload-status" role="status" aria-live="polite"></p>
     </div>
+      <dialog class="archive-lightbox" id="archive-lightbox" aria-labelledby="archive-lightbox-caption">
+        <button class="archive-lightbox-close" id="archive-lightbox-close" type="button" aria-label="Close enlarged photo" autofocus>×</button>
+        <figure class="archive-lightbox-figure">
+          <img id="archive-lightbox-image" alt="" />
+          <figcaption id="archive-lightbox-caption"></figcaption>
+        </figure>
+      </dialog>
   </section>`, '#/archive')
 }
 
@@ -660,6 +669,8 @@ async function render() {
 
   if (route === '#/archive') {
     document.querySelector('#app').innerHTML = await archivePage()
+  } else if (route === '#/dress-up') {
+    document.querySelector('#app').innerHTML = shell(dressUpGameMarkup(), '#/dress-up')
   } else if (route === '#/confessions') {
     document.querySelector('#app').innerHTML = confessionsPage()
   } else if (route === '#/wheel') {
@@ -707,6 +718,47 @@ function celebrateYes() {
 
 async function wireInteractions() {
   attachTabHandlers()
+  initDressUpGame()
+
+  const archiveGallery = document.querySelector('#archive-gallery')
+  const archiveLightbox = document.querySelector('#archive-lightbox')
+  const lightboxImage = document.querySelector('#archive-lightbox-image')
+  const lightboxCaption = document.querySelector('#archive-lightbox-caption')
+  let photoOpener = null
+  const openPhoto = image => {
+    if (!archiveLightbox || !lightboxImage || !lightboxCaption || archiveLightbox.open) return
+    photoOpener = image
+    lightboxImage.src = image.src
+    lightboxImage.alt = image.alt || 'Enlarged archive photo'
+    lightboxCaption.textContent = image.alt || 'Archive photo'
+    archiveLightbox.showModal()
+  }
+
+  archiveGallery?.addEventListener('click', event => {
+    const image = event.target.closest('.archive-photo img')
+    if (image) openPhoto(image)
+  })
+  archiveGallery?.addEventListener('keydown', event => {
+    const image = event.target.closest('.archive-photo img')
+    if (image && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault()
+      openPhoto(image)
+    }
+  })
+  document.querySelector('#archive-lightbox-close')?.addEventListener('click', () => archiveLightbox?.close())
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && archiveLightbox?.open) {
+      event.preventDefault()
+      archiveLightbox.close()
+    }
+  })
+  archiveLightbox?.addEventListener('click', event => {
+    if (event.target === archiveLightbox) archiveLightbox.close()
+  })
+  archiveLightbox?.addEventListener('close', () => {
+    photoOpener?.focus()
+    photoOpener = null
+  })
 
   document.querySelector('#archive-create-tab')?.addEventListener('submit', async event => {
     event.preventDefault()
