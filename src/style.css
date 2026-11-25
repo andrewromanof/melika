@@ -39,29 +39,44 @@ main { min-width: 0; }
 .dress-stage-heart { position: absolute; top: 120px; right: 19%; color: #c96f73; font: 400 44px var(--serif); transform: rotate(12deg); }
 .dress-avatar-wrap { z-index: 1; display: grid; place-items: center; width: min(100%, 380px); flex: 1; }
 .dress-avatar { display: block; width: min(100%, 350px); max-height: 485px; overflow: visible; filter: drop-shadow(0 10px 12px rgba(90, 60, 53, .1)); }
+.avatar-base-torso { fill: #d99b8e; }
+.avatar-skin { fill: #d99b8e; }
+.avatar-shirt, .avatar-bottom-pants, .avatar-bottom-shorts, .avatar-bottom-sweats, .avatar-cargo-pocket, .avatar-dress, .avatar-shoes, .avatar-extra, .avatar-costume, .avatar-flannel-detail, .avatar-nipples { display: none; }
+.avatar-nipples { fill: #a96865; }
+.avatar-hair-fluffy, .avatar-hair-curly, .avatar-hair-styled { display: none; }
+.avatar-selfie { display: block; }
+#dress-avatar[data-face="selfie"] .avatar-hair-back, #dress-avatar[data-face="selfie"] .avatar-hair-front,
+#dress-avatar[data-face="selfie"] .avatar-ears, #dress-avatar[data-face="selfie"] .avatar-face,
+#dress-avatar[data-face="selfie"] .avatar-face-details { display: none; }
 .avatar-top-color { fill: #e6a14e; }
 .avatar-bottom-pants { fill: #6684a2; stroke: #536f8b; stroke-width: 2; }
-.avatar-bottom-shorts, .avatar-cargo-pocket { display: none; }
 .avatar-bottom-shorts { fill: #bd7456; stroke: #995b45; stroke-width: 2; }
+.avatar-bottom-sweats { fill: #9c9fa5; stroke: #777b83; stroke-width: 2; }
 .avatar-cargo-pocket { fill: #8e9b71; stroke: #6f7a58; stroke-width: 2; }
-.avatar-shoes { display: none; }
-.avatar-sneakers { display: block; }
 .avatar-shoe-color { fill: #f3efe5; stroke: #718176; stroke-width: 2; }
-.hoodie-detail, .jacket-detail, .sweater-detail, .avatar-accessory { display: none; }
-#dress-avatar[data-top="hoodie"] .avatar-top-color { fill: #7893b3; }
-#dress-avatar[data-top="hoodie"] .hoodie-detail, #dress-avatar[data-top="jacket"] .jacket-detail, #dress-avatar[data-top="sweater"] .sweater-detail { display: block; }
-#dress-avatar[data-top="jacket"] .avatar-top-color { fill: #5c8299; }
-#dress-avatar[data-top="sweater"] .avatar-top-color { fill: #9a7660; }
-#dress-avatar[data-bottom="cargo"] .avatar-bottom-pants { fill: #929c77; stroke: #727d5b; }
-#dress-avatar[data-bottom="cargo"] .avatar-cargo-pocket { display: block; }
-#dress-avatar[data-bottom="chinos"] .avatar-bottom-pants { fill: #b18b5c; stroke: #927047; }
-#dress-avatar[data-bottom="shorts"] .avatar-bottom-pants { display: none; }
-#dress-avatar[data-bottom="shorts"] .avatar-bottom-shorts { display: block; }
-#dress-avatar[data-shoes="boots"] .avatar-sneakers, #dress-avatar[data-shoes="slides"] .avatar-sneakers { display: none; }
-#dress-avatar[data-shoes="boots"] .avatar-boots, #dress-avatar[data-shoes="slides"] .avatar-slides { display: block; }
-#dress-avatar[data-shoes="boots"] .avatar-shoe-color { fill: #895b43; stroke: #684536; }
-#dress-avatar[data-shoes="slides"] .avatar-shoe-color { fill: #668876; stroke: #4c6a5a; }
-#dress-avatar[data-accessory="cap"] .avatar-cap, #dress-avatar[data-accessory="beanie"] .avatar-beanie, #dress-avatar[data-accessory="sunglasses"] .avatar-sunglasses { display: block; }
+.avatar-dress { fill: #d78587; stroke: #aa6268; stroke-width: 2; }
+.hoodie-detail, .jacket-detail, .sweater-detail { display: none; }
+#dress-avatar[data-shirts="tank-top"] .avatar-torso,
+#dress-avatar[data-shirts="white-tshirt"] .avatar-shirt,
+#dress-avatar[data-shirts="flannel"] .avatar-shirt { display: block; }
+#dress-avatar[data-shirts="tank-top"] .avatar-top-color { fill: #5c8299; }
+#dress-avatar[data-shirts="tank-top"] .avatar-sleeves { display: none; }
+#dress-avatar[data-shirts="white-tshirt"] .avatar-top-color { fill: #fffdf8; }
+#dress-avatar[data-shirts="flannel"] .avatar-top-color { fill: #a94f4d; }
+#dress-avatar[data-shirts="flannel"] .avatar-flannel-detail { display: block; }
+#dress-avatar[data-shirts="show-nipples"] .avatar-nipples { display: block; }
+#dress-avatar[data-pants="denim"] .avatar-bottom-pants, #dress-avatar[data-pants="cargo"] .avatar-bottom-pants { display: block; }
+#dress-avatar[data-pants="cargo"] .avatar-bottom-pants { fill: #929c77; stroke: #727d5b; }
+#dress-avatar[data-pants="cargo"] .avatar-cargo-pocket { display: block; }
+#dress-avatar[data-pants="shorts"] .avatar-bottom-shorts { display: block; }
+#dress-avatar[data-pants="grey-sweatpants"] .avatar-bottom-sweats { display: block; }
+#dress-avatar[data-dresses="pink-dress"] .avatar-dress { display: block; fill: #ec9ab5; stroke: #c36f8c; }
+#dress-avatar[data-shoes="white-running-shoes"] .avatar-sneakers, #dress-avatar[data-shoes="socks"] .avatar-socks, #dress-avatar[data-shoes="dress-shoes"] .avatar-dress-shoes, #dress-avatar[data-shoes="slippers"] .avatar-slippers { display: block; }
+#dress-avatar[data-shoes="dress-shoes"] .avatar-shoe-color { fill: #583e35; stroke: #3e302c; }
+#dress-avatar[data-shoes="slippers"] .avatar-shoe-color { fill: #668876; stroke: #4c6a5a; }
+#dress-avatar[data-extras~="sunglasses"] .avatar-sunglasses { display: block; }
+#dress-avatar[data-extras~="sleeve-tattoos"] .avatar-sleeve-tattoos { display: block; }
+#dress-avatar[data-costumes="prisoner-suit"] .avatar-costume-prisoner, #dress-avatar[data-costumes="pyjamas"] .avatar-costume-pyjamas { display: block; }
 .dress-look-caption { min-height: 20px; margin: 10px 0 0; color: #684f46; font: 500 13px/1.4 var(--serif); text-align: center; }
 .dress-stage-sticker { position: absolute; right: 22px; bottom: 64px; display: grid; place-items: center; width: 62px; height: 62px; border: 1px solid rgba(188,103,73,.4); border-radius: 50%; color: var(--rust); font: 500 10px/1.05 var(--serif); text-align: center; transform: rotate(11deg); }
 .dress-closet { align-self: stretch; padding: clamp(22px, 3vw, 34px); border: 1px solid var(--line); border-radius: 28px; background: rgba(255, 255, 255, .52); box-shadow: 0 18px 50px rgba(36, 42, 37, .045); }
@@ -69,15 +84,20 @@ main { min-width: 0; }
 .dress-closet-kicker { margin-bottom: 8px; }
 .dress-closet-heading h2 { margin: 0; color: var(--ink); font: 500 30px/1 var(--serif); }
 .dress-closet-count { color: #93978d; font-size: 9px; letter-spacing: .12em; }
-.dress-category-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; padding: 5px; border-radius: 12px; background: #ecebe3; }
+.dress-category-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 5px; border-radius: 12px; background: #ecebe3; }
 .dress-category { min-width: 0; min-height: 40px; padding: 0 6px; border: 0; border-radius: 9px; background: transparent; color: #70766d; font-size: 10px; transition: color .2s, background .2s, box-shadow .2s; }
 .dress-category.active, .dress-category[aria-selected="true"] { background: #fffdf8; color: var(--green); box-shadow: 0 2px 8px rgba(36, 42, 37, .08); }
 .dress-category:focus-visible, .dress-option:focus-visible, .dress-randomize:focus-visible, .dress-reset:focus-visible { outline: 2px solid var(--rust); outline-offset: 3px; }
-.dress-closet-note { margin: 21px 0 13px; color: #898e84; font-size: 10px; }
+.dress-closet-note { margin: 21px 0 13px; color: #898e84; font-size: 10px; line-height: 1.5; }
 .dress-closet-note span { color: var(--rust); margin-right: 7px; }
 .dress-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.dress-option { position: relative; min-height: 102px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 13px; border: 1px solid #deded3; border-radius: 14px; background: rgba(255,255,255,.62); color: var(--ink); text-align: left; font-size: 10px; transition: transform .18s, border-color .18s, background .18s; }
+.dress-option { position: relative; min-height: 110px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 13px; border: 1px solid #deded3; border-radius: 14px; background: rgba(255,255,255,.62); color: var(--ink); text-align: left; font-size: 10px; transition: transform .18s, border-color .18s, background .18s; }
 .dress-option:hover { transform: translateY(-2px); border-color: #9caa9b; }
+.dress-option:disabled { cursor: not-allowed; opacity: .76; }
+.dress-option:disabled:hover { transform: none; border-color: #deded3; }
+.dress-option.locked { background: linear-gradient(145deg, rgba(255,255,255,.7), rgba(233,231,221,.72)); }
+.dress-option-action { color: #8a6a2c; font-size: 9px; }
+.dress-option.owned .dress-option-action { color: var(--green); }
 .dress-option.selected { border-color: var(--green); background: #e9eee7; box-shadow: inset 0 0 0 1px var(--green); }
 .dress-option-icon { font-size: 28px; line-height: 1; }
 .dress-option-check { position: absolute; top: 10px; right: 11px; color: var(--green); opacity: 0; font-size: 12px; }
