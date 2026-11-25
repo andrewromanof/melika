@@ -21,7 +21,9 @@ const nav = [
 
 const archiveStorageKey = 'melika-archive-v1'
 const selectedArchiveTabStorageKey = 'melika-archive-selected-tab-v1'
+const archiveViewModeStorageKey = 'melika-archive-view-mode-v1'
 const celebrationStorageKey = `melika-question-answered-${__BUILD_ID__}`
+let archiveStateCache = null
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL || 'https://iatydlfnlqqbfotadfvs.supabase.co',
   import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_q9zoSOvb9lUsf0CfhBSTdg_8KkmjAyl',
@@ -246,9 +248,22 @@ function archiveImage(tab, index) {
   return `<figure class="archive-photo"><img src="${image.src}" alt="${label}" /></figure>`
 }
 
+function getArchiveViewMode() {
+  return localStorage.getItem(archiveViewModeStorageKey) === 'layout' ? 'layout' : 'carousel'
+}
+
+function archiveGalleryContent(tab, viewMode, index = 0) {
+  if (viewMode === 'layout' && tab?.images?.length) {
+    return tab.images.map((_, imageIndex) => archiveImage(tab, imageIndex)).join('')
+  }
+  return archiveImage(tab, index)
+}
+
 async function archivePage() {
   const state = await loadArchiveState()
+  archiveStateCache = state
   const activeTab = getSelectedArchiveTab(state) || state.tabs[0]
+  const viewMode = getArchiveViewMode()
   if (!activeTab) {
     return shell(`<section class="archive-view" aria-label="Date archive"><p class="archive-empty-state">No archive tabs yet.</p></section>`, '#/archive')
   }
@@ -265,16 +280,18 @@ async function archivePage() {
       </form>
     </aside>
     <div class="archive-gallery-wrap">
-      <div class="archive-gallery" id="archive-gallery" data-tab-id="${activeTab.id}" data-index="0" tabindex="0" aria-label="${activeTab.name} photo gallery">
-        ${archiveImage(activeTab, 0)}
+      <div class="archive-gallery ${viewMode === 'layout' ? 'is-layout' : ''}" id="archive-gallery" data-tab-id="${activeTab.id}" data-index="0" data-view-mode="${viewMode}" tabindex="0" aria-label="${activeTab.name} ${viewMode === 'layout' ? 'photo layout' : 'photo carousel'}">
+        ${archiveGalleryContent(activeTab, viewMode)}
       </div>
       <div class="archive-controls">
-        <button class="next-image" id="next-image" type="button">Next image <span>↗</span></button>
+        <button class="archive-view-toggle" id="archive-view-toggle" type="button" aria-pressed="${viewMode === 'layout'}">${viewMode === 'layout' ? 'Carousel view' : 'Layout view'}</button>
+        <button class="next-image" id="next-image" type="button" ${viewMode === 'layout' ? 'hidden' : ''}>Next image <span>↗</span></button>
         <label class="archive-upload" for="archive-upload-input">
           Add media
-          <input id="archive-upload-input" type="file" accept="image/*,video/*" />
+          <input id="archive-upload-input" type="file" accept="image/*,video/*" multiple />
         </label>
       </div>
+      <p class="archive-upload-status" id="archive-upload-status" role="status" aria-live="polite"></p>
     </div>
   </section>`, '#/archive')
 }
@@ -718,58 +735,106 @@ async function wireInteractions() {
 
   document.querySelector('#next-image')?.addEventListener('click', async () => {
     const gallery = document.querySelector('#archive-gallery')
-    const state = await loadArchiveState()
+    const state = archiveStateCache || await loadArchiveState()
     const tabId = gallery?.dataset.tabId || getSelectedArchiveTabId(state)
     const activeTab = state.tabs.find(item => item.id === tabId) || state.tabs[0]
     if (!gallery || !activeTab || !activeTab.images.length) return
     const nextIndex = (Number(gallery.dataset.index || 0) + 1) % activeTab.images.length
     gallery.dataset.index = String(nextIndex)
-    gallery.innerHTML = archiveImage(activeTab, nextIndex)
+    gallery.innerHTML = archiveGalleryContent(activeTab, 'carousel', nextIndex)
+  })
+
+  document.querySelector('#archive-view-toggle')?.addEventListener('click', async event => {
+    const gallery = document.querySelector('#archive-gallery')
+    if (!gallery) return
+
+    const state = archiveStateCache || await loadArchiveState()
+    const tabId = gallery.dataset.tabId || getSelectedArchiveTabId(state)
+    const activeTab = state.tabs.find(item => item.id === tabId) || state.tabs[0]
+    if (!activeTab) return
+
+    const viewMode = gallery.dataset.viewMode === 'layout' ? 'carousel' : 'layout'
+    localStorage.setItem(archiveViewModeStorageKey, viewMode)
+    gallery.dataset.viewMode = viewMode
+    gallery.classList.toggle('is-layout', viewMode === 'layout')
+    gallery.setAttribute('aria-label', `${activeTab.name} ${viewMode === 'layout' ? 'photo layout' : 'photo carousel'}`)
+    gallery.innerHTML = archiveGalleryContent(activeTab, viewMode, Number(gallery.dataset.index || 0))
+
+    const toggle = event.currentTarget
+    toggle.textContent = viewMode === 'layout' ? 'Carousel view' : 'Layout view'
+    toggle.setAttribute('aria-pressed', String(viewMode === 'layout'))
+    document.querySelector('#next-image').hidden = viewMode === 'layout'
   })
 
   document.querySelector('#archive-upload-input')?.addEventListener('change', async event => {
-    const file = event.target.files?.[0]
-    const isImage = file?.type.startsWith('image/')
-    const isVideo = file?.type.startsWith('video/')
-    if (!file || (!isImage && !isVideo)) return
+    const input = event.currentTarget
+    const files = Array.from(input.files || [])
+    const status = document.querySelector('#archive-upload-status')
+    if (!files.length) return
 
+    input.value = ''
+    input.disabled = true
     const state = await loadArchiveState()
     const tabId = document.querySelector('#archive-gallery')?.dataset.tabId || getSelectedArchiveTabId(state)
-    const uniqueName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`
+    if (!tabId) {
+      status.textContent = 'Could not find an archive tab for these uploads.'
+      input.disabled = false
+      return
+    }
 
-    try {
-      const { error: uploadError } = await supabase.storage
-        .from('archive-images')
-        .upload(`${tabId}/${uniqueName}`, file, {
-          upsert: true,
-          contentType: file.type,
-        })
+    let uploadedCount = 0
+    let failedCount = 0
+    for (const [index, file] of files.entries()) {
+      const isImage = file.type.startsWith('image/')
+      const isVideo = file.type.startsWith('video/')
+      if (!isImage && !isVideo) {
+        failedCount += 1
+        console.warn(`Skipped unsupported archive file: ${file.name}`)
+        continue
+      }
 
-      if (uploadError) throw uploadError
+      status.textContent = `Uploading ${index + 1} of ${files.length}: ${file.name}`
+      const uniqueName = `${Date.now()}-${index}-${file.name.replace(/\s+/g, '-')}`
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('archive-images')
+          .upload(`${tabId}/${uniqueName}`, file, {
+            upsert: true,
+            contentType: file.type,
+          })
 
-      const { data: urlData } = supabase.storage
-        .from('archive-images')
-        .getPublicUrl(`${tabId}/${uniqueName}`)
+        if (uploadError) throw uploadError
 
-      const { error: insertError } = await supabase
-        .from('archive_images')
-        .insert({
-          tab_id: tabId,
-          image_url: urlData.publicUrl,
-          alt_text: `${file.name}`,
-        })
+        const { data: urlData } = supabase.storage
+          .from('archive-images')
+          .getPublicUrl(`${tabId}/${uniqueName}`)
 
-      if (insertError) throw insertError
+        const { error: insertError } = await supabase
+          .from('archive_images')
+          .insert({
+            tab_id: tabId,
+            image_url: urlData.publicUrl,
+            alt_text: file.name,
+          })
 
+        if (insertError) throw insertError
+        uploadedCount += 1
+      } catch (error) {
+        failedCount += 1
+        console.error(`Could not upload archive file ${file.name}`, error)
+      }
+    }
+
+    input.disabled = false
+    if (uploadedCount) {
       const updatedState = await loadArchiveState()
       const activeTab = updatedState.tabs.find(item => item.id === tabId) || updatedState.tabs[0]
-      if (activeTab) {
-        await renderArchiveFromState(updatedState, activeTab.id)
-      }
-      event.target.value = ''
-    } catch (error) {
-      console.error('Could not upload archive image', error)
+      if (activeTab) await renderArchiveFromState(updatedState, activeTab.id)
     }
+
+    status.textContent = failedCount
+      ? `Uploaded ${uploadedCount} of ${files.length} files; ${failedCount} failed or were skipped.`
+      : `Uploaded ${uploadedCount} ${uploadedCount === 1 ? 'file' : 'files'}.`
   })
 
   document.querySelector('#create-confession-button')?.addEventListener('click', () => {
@@ -871,6 +936,7 @@ function attachTabHandlers() {
 }
 
 async function renderArchiveFromState(state, tabId) {
+  archiveStateCache = state
   const selectedTabId = tabId || getSelectedArchiveTabId(state)
   const selectedTab = state.tabs.find(tab => tab.id === selectedTabId) || state.tabs[0]
   if (!selectedTab) return
@@ -886,10 +952,20 @@ async function renderArchiveFromState(state, tabId) {
   
   const gallery = document.querySelector('#archive-gallery')
   if (!gallery) return
+  const viewMode = getArchiveViewMode()
   gallery.dataset.tabId = selectedTab.id
   gallery.dataset.index = '0'
-  gallery.setAttribute('aria-label', `${selectedTab.name} photo gallery`)
-  gallery.innerHTML = archiveImage(selectedTab, 0)
+  gallery.dataset.viewMode = viewMode
+  gallery.classList.toggle('is-layout', viewMode === 'layout')
+  gallery.setAttribute('aria-label', `${selectedTab.name} ${viewMode === 'layout' ? 'photo layout' : 'photo carousel'}`)
+  gallery.innerHTML = archiveGalleryContent(selectedTab, viewMode)
+  const toggle = document.querySelector('#archive-view-toggle')
+  if (toggle) {
+    toggle.textContent = viewMode === 'layout' ? 'Carousel view' : 'Layout view'
+    toggle.setAttribute('aria-pressed', String(viewMode === 'layout'))
+  }
+  const nextButton = document.querySelector('#next-image')
+  if (nextButton) nextButton.hidden = viewMode === 'layout'
 }
 
 window.addEventListener('hashchange', render)

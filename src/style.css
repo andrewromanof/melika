@@ -40,12 +40,19 @@ main { min-width: 0; }
 .archive-create-tab button:hover, .archive-upload:hover { background: var(--rust); border-color: var(--rust); }
 .archive-gallery-wrap { min-width: 0; min-height: calc(100vh - 10vh); padding: 28px clamp(20px, 4vw, 64px); display: flex; flex-direction: column; align-items: center; }
 .archive-gallery { min-height: 0; flex: 1; width: 100%; overflow: hidden; display: grid; place-items: center; padding: 0 10px; }
+.archive-gallery.is-layout { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); align-content: start; align-items: start; gap: 16px; max-height: calc(100vh - 220px); overflow-y: auto; padding: 0 10px 12px; }
 .archive-photo { margin: 0; background: #e1dbce; overflow: hidden; }
 .archive-photo img { display: block; max-width: 100%; max-height: calc(100vh - 10vh - 110px); width: auto; height: auto; object-fit: contain; }
 .archive-photo video { display: block; max-width: 100%; max-height: calc(100vh - 10vh - 110px); width: auto; height: auto; object-fit: contain; }
+.archive-gallery.is-layout .archive-photo { display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 3; }
+.archive-gallery.is-layout .archive-photo img, .archive-gallery.is-layout .archive-photo video { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: contain; }
+.archive-gallery.is-layout .archive-empty { grid-column: 1 / -1; aspect-ratio: auto; }
 .archive-empty { display: grid; place-items: center; min-width: 220px; min-height: 240px; background: rgba(225, 219, 206, .75); border: 1px dashed rgba(66, 88, 71, .4); }
 .archive-empty-copy { color: var(--green); font: 400 18px var(--serif); }
 .archive-controls { display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; margin-top: 18px; }
+.archive-view-toggle { border: 0; border-bottom: 1px solid var(--rust); background: none; color: var(--ink); padding: 0 0 7px; font: inherit; font-size: 14px; cursor: pointer; }
+.archive-view-toggle:hover { color: var(--rust); }
+.archive-view-toggle:focus-visible { outline: 2px solid var(--rust); outline-offset: 4px; }
 .next-image { border: 0; border-bottom: 1px solid var(--rust); background: none; color: var(--ink); padding: 0 0 7px; font-size: 14px; }
 .next-image span { color: var(--rust); margin-left: 14px; }
 .archive-upload { position: relative; overflow: hidden; }
